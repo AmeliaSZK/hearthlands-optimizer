@@ -13,18 +13,18 @@ public interface Multiset<K> extends Map<K, Integer> {
     
     
     /**
-     * Adds the specified count of {@code keyType} to the multiset. 
+     * Adds the specified count of {@code element} to the multiset. 
      * 
-     * @param keyType The key to add.
+     * @param element The key to add.
      * @param count The amount to add.
      */
-    public default void add(K keyType, Integer count) {
-        Integer previousCount = this.get(keyType);
+    public default void add(K element, Integer count) {
+        Integer previousCount = this.get(element);
         
         if(previousCount == null) {
-            this.put(keyType, count);
+            this.put(element, count);
         } else {
-            this.put(keyType, count + previousCount);
+            this.put(element, count + previousCount);
         }
     }
     
@@ -38,4 +38,5 @@ public interface Multiset<K> extends Map<K, Integer> {
             add(entry.getKey(), entry.getValue());
         }
     }
+    
 }
