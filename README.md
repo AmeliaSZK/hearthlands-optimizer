@@ -1,5 +1,5 @@
 # hearthlands-optimizer
-A Java program to support an Excel spreadsheet meant to optimize gameplay of Hearthlands.
+A Java program to support an Excel spreadsheet meant to optimize my gameplay of Hearthlands.
 
 This a personal project meant to entertain and educate me, and this repository exists so I can show my code to my friends and enable them to give me feedback. Forking and doing your own thing is okay, per license specifications. This Java project exists to supplement stuff Excel cannot easily do, such as computing the dependencies graph.
 
@@ -20,7 +20,9 @@ The Excel spreadsheet is unlikely to be released as I fear the inclusion of de-a
   * 0.5 Tree Forestry
   * 0.25 Well
   
-## Unsollicited Contributions and Pull Requests
+## Unsolicited Contributions and Pull Requests
+This sections explicits boundaries and absences of boundary for unsolicited contributions/pull requests.
+
 ### Welcomed contributions
 * Remarking offensive wording from a social justice perspective. Ableist slurs like "idiot" are includes. TERFs, SWERFs, ace/aro exclusitionists, and truscums concerns are excluded.
 * Remarking that some of my documentation is unclear, unhelpful, or too much. This include commit messages etc.
