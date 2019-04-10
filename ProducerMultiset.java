@@ -14,5 +14,15 @@ public class ProducerMultiset extends HashMap<Producer, Integer>
      */
     private static final long serialVersionUID = 3901971977089369773L;
     
+    /**
+     * Constructs an empty {@code ProducerMultiset} with the default initial
+     * capacity(16) and the default load factor (0.75).
+     * 
+     * {@link HashMap}
+     * 
+     */
+    public ProducerMultiset() {
+        super();
+    }
     
 }
