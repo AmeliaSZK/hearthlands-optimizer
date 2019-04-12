@@ -9,17 +9,51 @@ package hearthlandsoptimizer;
  * Coins, then Trees and Mushrooms by order of apparition in the forestry, and
  * then Flowers because it's a forestry produce reserved to some cultures.
  * 
- * Resources with a plural name got it because that's how it's spelled in the
- * game.
+ * Resources with a plural name got their plurality because that's how it's
+ * spelled in the game.
  * 
  * @author Amélia @SlayZeKyriarchy
  *
  */
 public enum Resource {
-    APPLES, TURNIPS, HONEY, EGGS, FISH, CHEESE, WURST, BREAD, MILK, MEAT, GRAIN,
-    FLOUR, HOPS, MEAD, WINE, CIDER, BEER, FURNITURE, CLOTHES, BOOTS, PILLOWS,
-    MEDICINE, LOGS, PLANKS, WOOL, COTTON, TEXTILE, LEATHER, FEATHERS, STONE,
-    COAL, IRON_ORE, GOLD, IRON, COINS, TREES, MUSHROOMS, FLOWERS;
+    APPLES,
+    TURNIPS,
+    HONEY,
+    EGGS,
+    FISH,
+    CHEESE,
+    WURST,
+    BREAD,
+    MILK,
+    MEAT,
+    GRAIN,
+    FLOUR,
+    HOPS,
+    MEAD,
+    WINE,
+    CIDER,
+    BEER,
+    FURNITURE,
+    CLOTHES,
+    BOOTS,
+    PILLOWS,
+    MEDICINE,
+    LOGS,
+    PLANKS,
+    WOOL,
+    COTTON,
+    TEXTILE,
+    LEATHER,
+    FEATHERS,
+    STONE,
+    COAL,
+    IRON_ORE,
+    GOLD,
+    IRON,
+    COINS,
+    TREES,
+    MUSHROOMS,
+    FLOWERS;
     
     /**
      * Returns the name of this enum constant, converted to lowercase, with the
