@@ -81,6 +81,7 @@ public abstract class Building {
                     + culture.ordinal()];
             boolean isIncluded = marker.equals("1");
             
+            cultures = EnumSet.noneOf(Culture.class);
             if (isIncluded) {
                 cultures.add(culture);
             }

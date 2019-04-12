@@ -48,7 +48,7 @@ public class Main {
             + "Woodcutter;WOODCUTTER;1;1;1;1;prod;4;24;;\n";
     
     public static void main(String[] args) {
-        
+        Building.buildAll(TEST_DATA);
         
     }
     
