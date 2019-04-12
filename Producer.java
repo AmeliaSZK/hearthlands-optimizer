@@ -11,15 +11,14 @@ import java.util.Set;
  *
  */
 public class Producer extends Building {
+    
     private static final int MAX_RECURSIVE_CALLS    = 1;
     private static final int UNCOMPUTED_TOTAL_STAFF = -1;
-    
+
+    private int    localStaff;
+    private int    loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
-    
-    private String name;
-    private int    loadsPerYear;
-    private int    localStaff;
     
     private int              totalStaff;
     private ProducerMultiset completeChain;
@@ -37,6 +36,11 @@ public class Producer extends Building {
         completeChain = new ProducerMultiset();
     }
     
+    protected Producer(String[] specs) {
+        commonParser(specs);
+        particularParser(specs);
+    }
+
     public static class ProducerBuilder {
         // Required parameters
         private String name;
@@ -200,6 +204,14 @@ public class Producer extends Building {
         for (Entry<Producer, Integer> entry : completeChain.entrySet()) {
             cumulatedStaff += entry.getKey().getLocalStaff() * entry.getValue();
         }
+        
+    }
+    
+
+    @Override
+    protected void particularParser(String[] particularSpecs) {
+        this.localStaff = Integer.valueOf(particularSpecs[STAFF_COLUMN]);
+        this.loadsPerYear = Integer.valueOf(particularSpecs[LOADS_COLUMN]);
         
     }
     
