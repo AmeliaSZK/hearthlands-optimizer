@@ -8,6 +8,7 @@ package hearthlandsoptimizer;
  * They are sorted by order of apparition in the storehouse interface, then
  * Coins, then Trees and Mushrooms by order of apparition in the forestry, and
  * then Flowers because it's a forestry produce reserved to some cultures.
+ * Water is at the end because it was added last.
  * 
  * Resources with a plural name got their plurality because that's how it's
  * spelled in the game.
@@ -53,7 +54,8 @@ public enum Resource {
     COINS,
     TREES,
     MUSHROOMS,
-    FLOWERS;
+    FLOWERS,
+    WATER;
     
     /**
      * Returns the name of this enum constant, converted to lowercase, with the

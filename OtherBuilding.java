@@ -17,5 +17,10 @@ public class OtherBuilding extends Building {
     
     @Override
     protected void particularParser(List<String> specs) {}
+
+    @Override
+    protected String particularToString() {
+        return "";
+    }
     
 }
