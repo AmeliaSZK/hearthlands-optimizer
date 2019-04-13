@@ -11,7 +11,7 @@ import java.util.Map.Entry;
  *
  */
 public class Producer extends Building {
-    
+
     private static final int MAX_RECURSIVE_CALLS    = 1;
     private static final int UNCOMPUTED_TOTAL_STAFF = -1;
     
@@ -22,69 +22,12 @@ public class Producer extends Building {
     private ProducerMultiset completeChain;
     
     private int nbOfRecursiveCalls;
-    
-    private Producer(ProducerBuilder builder) {
-        this.name = builder.name;
-        this.loadsPerYear = builder.loadsPerYear;
-        this.localStaff = builder.localStaff;
         
-        totalStaff = UNCOMPUTED_TOTAL_STAFF;
-        completeChain = new ProducerMultiset();
-    }
-    
     protected Producer(List<String> specs) {
         commonParser(specs);
         particularParser(specs);
     }
     
-    public static class ProducerBuilder {
-        // Required parameters
-        private String name;
-        private int    loadsPerYear;
-        private int    localStaff;
-        
-        // Optional parameters
-        private ResourceMultiset consumption;
-        private ResourceMultiset production;
-        
-        /**
-         * Basic constructor. Will throw an AssertionError if {@code produces}
-         * isn't called before {@code build()}.
-         * 
-         * @param name         Name of the building.
-         * @param loadsPerYear Loads produced per year.
-         * @param localStaff   Staff needed for this producer, and only this
-         *                     producer.
-         */
-        public ProducerBuilder(String name, int loadsPerYear, int localStaff) {
-            this.name = name;
-            this.loadsPerYear = loadsPerYear;
-            this.localStaff = localStaff;
-            
-            this.consumption = new ResourceMultiset();
-            this.production = new ResourceMultiset();
-        }
-        
-        public ProducerBuilder consumes(Resource resType, int count) {
-            this.consumption.add(resType, count);
-            return this;
-        }
-        
-        public ProducerBuilder produces(Resource resType, int count) {
-            this.production.add(resType, count);
-            return this;
-        }
-        
-        /**
-         * @return A Producer.
-         * @throws AssertionError if nothing is produced.
-         */
-        public Producer build() {
-            assert !production.isEmpty() : "A Producer must produce something.";
-            return new Producer(this);
-        }
-        
-    } // End class ProducerBuilder
     
     public boolean isTotalStaffComputed() {
         return totalStaff != UNCOMPUTED_TOTAL_STAFF;
@@ -102,10 +45,6 @@ public class Producer extends Building {
         return production.containsKey(resource);
     }
     
-    public void resetDependencies() {
-        totalStaff = UNCOMPUTED_TOTAL_STAFF;
-        completeChain.clear();
-    }
     
     @Override
     public int getTotalStaff() {
