@@ -212,7 +212,22 @@ public class Producer extends Building {
     protected void particularParser(String[] particularSpecs) {
         this.localStaff = Integer.valueOf(particularSpecs[STAFF_COLUMN]);
         this.loadsPerYear = Integer.valueOf(particularSpecs[LOADS_COLUMN]);
-        
+        parseResources(consumption, particularSpecs[CONSUMPTION_COLUMN]);
+        parseResources(production, particularSpecs[PRODUCTION_COLUMN]);
     }
     
+    private void parseResources(ResourceMultiset direction, String specifications) {
+    	direction = new ResourceMultiset();
+        if( ! specifications.isEmpty() ) {
+    	    String[] specs = specifications.split(" +");
+            assert specs.length % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
+     
+            // Notice the i=i+2 instead of i++
+            for(int i=0; i < specs.length - 1; i=i+2){
+            	Integer count = Integer.valueOf(specs[i]);
+                Resource resource = Resource.valueOf(specs[i+1]);
+            	direction.add(resource, count);
+            } // End for all pairs of fields
+        } // End if specifications aren't empty
+    } // End parseResources
 }
