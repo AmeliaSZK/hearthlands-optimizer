@@ -6,7 +6,7 @@ import java.util.EnumMap;
  * @author Amélia @SlayZeKyriarchy
  *
  */
-public class ResourceMultiset extends EnumMap<Resource, Integer>
+public class ResourceMultiset extends EnumMap<Resource, Float>
         implements Multiset<Resource> {
     
     /**
