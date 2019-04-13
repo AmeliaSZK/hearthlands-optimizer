@@ -2,6 +2,7 @@ package hearthlandsoptimizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,8 @@ public abstract class Building {
     protected EnumSet<Culture> cultures;
     protected int              localStaff;
     protected int              totalStaff;
+    
+    protected EnumMap<Culture, DependencyChain> allChains;
     
     protected Building() {}
     
@@ -98,7 +101,7 @@ public abstract class Building {
         }
         
         for (Building building : allBuildings) {
-            if(building instanceof Producer) {
+            if (building instanceof Producer) {
                 Producer producer = (Producer) building;
                 result += producer.getCompleteChain().toString();
                 result += "\n";
@@ -191,5 +194,16 @@ public abstract class Building {
     protected abstract String particularToString();
     
     protected abstract void particularParser(List<String> particularSpecs);
+    
+    protected class DependencyChain {
+        private final Building owner;
+        
+        private Float            totalStaff;
+        private ProducerMultiset chain;
+        
+        private DependencyChain(Building owner) {
+            this.owner = owner;
+        }
+    }
     
 }

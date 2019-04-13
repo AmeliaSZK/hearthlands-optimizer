@@ -51,6 +51,7 @@ public class Main {
     public static void main(String[] args) {
         Building.buildAll(TEST_DATA, false, true, false);
         System.out.println(Building.allToString());
+        
     }
     
 }
