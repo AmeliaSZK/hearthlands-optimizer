@@ -1,6 +1,7 @@
 package hearthlandsoptimizer;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /**
@@ -105,7 +106,7 @@ public class Producer extends Building {
         totalStaff = UNCOMPUTED_TOTAL_STAFF;
         completeChain.clear();
     }
-        
+    
     @Override
     public int getTotalStaff() {
         if (isTotalStaffComputed() == false) {
@@ -113,6 +114,10 @@ public class Producer extends Building {
         }
         
         return totalStaff;
+    }
+    
+    private Map<Resource, Float> getProduction() {
+        return Map.copyOf(production);
     }
     
     public ProducerMultiset getCompleteChain() {
@@ -151,24 +156,29 @@ public class Producer extends Building {
              * If the count is more than the max, then an AssertError will be
              * thrown. The count is set back to 0 at the end of this method.
              */
-            for (Entry<Resource, Float> entry : consumption.entrySet()) {
-                Resource neededResource = entry.getKey();
-                Producer supplier       = null;
+            for (Entry<Resource, Float> supply : consumption.entrySet()) {
+                Resource resourceNeeded  = supply.getKey();
+                Float    suppliesNeeded  = supply.getValue();
+                Producer supplier        = null;
+                Float    suppliersNeeded = 0f;
                 
                 for (Building building : allBuildings) {
                     if (building instanceof Producer) {
                         Producer producer = (Producer) building;
-                        if (producer.isProducing(neededResource)) {
+                        if (producer.isProducing(resourceNeeded)) {
                             supplier = producer;
+                            Float suppliesProduced = supplier.getProduction()
+                                    .get(resourceNeeded);
+                            suppliersNeeded = suppliesNeeded / suppliesProduced;
                         }
                     }
                 }
                 
                 assert supplier != null : String.format(
-                        "No supplier of %s found for %s.", neededResource,
+                        "No supplier of %s found for %s.", resourceNeeded,
                         this.name);
                 
-                completeChain.addAll(supplier.getCompleteChain());
+                completeChain.addAll(supplier.getCompleteChain(), suppliersNeeded);
             }
         }
         
@@ -187,8 +197,9 @@ public class Producer extends Building {
          * This instance is included in completeChain, so we initialize to 0.
          */
         
-        for (Entry<Producer, Float> entry : completeChain.entrySet()) {
-            cumulatedStaff += entry.getKey().getLocalStaff() * entry.getValue();
+        for (Entry<Producer, Float> supplier : completeChain.entrySet()) {
+            cumulatedStaff += supplier.getKey().getLocalStaff()
+                    * supplier.getValue();
         }
         
         totalStaff = cumulatedStaff;

@@ -97,6 +97,14 @@ public abstract class Building {
             result += "\n";
         }
         
+        for (Building building : allBuildings) {
+            if(building instanceof Producer) {
+                Producer producer = (Producer) building;
+                result += producer.getCompleteChain().toString();
+                result += "\n";
+            }
+        }
+        
         return result;
     }
     

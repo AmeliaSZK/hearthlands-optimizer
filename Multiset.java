@@ -49,10 +49,11 @@ public interface Multiset<K> extends Map<K, Float> {
      * Adds all members of the specified multiset to this multiset.
      * 
      * @param ms The multiset to add.
+     * @param count TODO
      */
-    public default void addAll(Multiset<K> ms) {
+    public default void addAll(Multiset<K> ms, Float count) {
         for(Map.Entry<K, Float> entry : ms.entrySet()) {
-            add(entry.getKey(), entry.getValue());
+            add(entry.getKey(), entry.getValue() * count);
         }
     }
     
