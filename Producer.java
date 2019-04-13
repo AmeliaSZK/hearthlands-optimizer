@@ -15,9 +15,9 @@ public class Producer extends Building {
     
     private static final int MAX_RECURSIVE_CALLS    = 1;
     private static final int UNCOMPUTED_TOTAL_STAFF = -1;
-
-    private int    localStaff;
-    private int    loadsPerYear;
+    
+    private int              localStaff;
+    private int              loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
     
@@ -41,7 +41,7 @@ public class Producer extends Building {
         commonParser(specs);
         particularParser(specs);
     }
-
+    
     public static class ProducerBuilder {
         // Required parameters
         private String name;
@@ -169,7 +169,7 @@ public class Producer extends Building {
              * If the count is more than the max, then an AssertError will be
              * thrown. The count is set back to 0 at the end of this method.
              */
-            for (Entry<Resource, Integer> entry : consumption.entrySet()) {
+            for (Entry<Resource, Float> entry : consumption.entrySet()) {
                 Resource neededResource = entry.getKey();
                 Producer supplier       = null;
                 
@@ -202,32 +202,34 @@ public class Producer extends Building {
          * This instance is included in completeChain, so we initialize to 0.
          */
         
-        for (Entry<Producer, Integer> entry : completeChain.entrySet()) {
+        for (Entry<Producer, Float> entry : completeChain.entrySet()) {
             cumulatedStaff += entry.getKey().getLocalStaff() * entry.getValue();
         }
         
     }
     
-
     @Override
     protected void particularParser(List<String> particularSpecs) {
         this.localStaff = Integer.valueOf(particularSpecs.get(STAFF_COLUMN));
         this.loadsPerYear = Integer.valueOf(particularSpecs.get(LOADS_COLUMN));
+        consumption = new ResourceMultiset();
         parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
+        production = new ResourceMultiset();
         parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
     }
     
-    private void parseResources(ResourceMultiset direction, String specifications) {
-    	direction = new ResourceMultiset();
-        if( ! specifications.isEmpty() ) {
-    	    String[] specs = specifications.split(" +");
-            assert specs.length % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
-     
+    private void parseResources(ResourceMultiset direction,
+            String specifications) {
+        if (!specifications.isEmpty()) {
+            String[] specs = specifications.split(" +");
+            assert specs.length
+                    % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
+            
             // Notice the i=i+2 instead of i++
-            for(int i=0; i < specs.length - 1; i=i+2){
-            	Integer count = Integer.valueOf(specs[i]);
-                Resource resource = Resource.valueOf(specs[i+1]);
-            	direction.add(resource, count);
+            for (int i = 0; i < specs.length - 1; i = i + 2) {
+                Integer  count    = Integer.valueOf(specs[i]);
+                Resource resource = Resource.valueOf(specs[i + 1]);
+                direction.add(resource, count);
             } // End for all pairs of fields
         } // End if specifications aren't empty
     } // End parseResources

@@ -6,7 +6,7 @@ import java.util.HashMap;
  * @author Amélia @SlayZeKyriarchy
  *
  */
-public class ProducerMultiset extends HashMap<Producer, Integer>
+public class ProducerMultiset extends HashMap<Producer, Float>
         implements Multiset<Producer> {
     
     /**

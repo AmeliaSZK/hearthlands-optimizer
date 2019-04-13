@@ -9,7 +9,7 @@ import java.util.Map;
  * @param <K> the type of elements maintained by this multiset.
  *
  */
-public interface Multiset<K> extends Map<K, Integer> {
+public interface Multiset<K> extends Map<K, Float> {
     
     
     /**
@@ -18,8 +18,8 @@ public interface Multiset<K> extends Map<K, Integer> {
      * @param element The key to add.
      * @param count The amount to add.
      */
-    public default void add(K element, Integer count) {
-        Integer previousCount = this.get(element);
+    public default void add(K element, Float count) {
+        Float previousCount = this.get(element);
         
         if(previousCount == null) {
             this.put(element, count);
@@ -29,12 +29,29 @@ public interface Multiset<K> extends Map<K, Integer> {
     }
     
     /**
+     * Adds the specified count of {@code element} to the multiset. 
+     * 
+     * @param element The key to add.
+     * @param count The amount to add.
+     */
+    public default void add(K element, Integer count) {
+        Float addedCount = count.floatValue();
+        Float previousCount = this.get(element);
+        
+        if(previousCount == null) {
+            this.put(element, addedCount);
+        } else {
+            this.put(element, addedCount + previousCount);
+        }
+    }
+    
+    /**
      * Adds all members of the specified multiset to this multiset.
      * 
      * @param ms The multiset to add.
      */
     public default void addAll(Multiset<K> ms) {
-        for(Map.Entry<K, Integer> entry : ms.entrySet()) {
+        for(Map.Entry<K, Float> entry : ms.entrySet()) {
             add(entry.getKey(), entry.getValue());
         }
     }
