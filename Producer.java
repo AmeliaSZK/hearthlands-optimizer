@@ -1,6 +1,7 @@
 package hearthlandsoptimizer;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ public class Producer extends Building {
         completeChain = new ProducerMultiset();
     }
     
-    protected Producer(String[] specs) {
+    protected Producer(List<String> specs) {
         commonParser(specs);
         particularParser(specs);
     }
@@ -209,11 +210,11 @@ public class Producer extends Building {
     
 
     @Override
-    protected void particularParser(String[] particularSpecs) {
-        this.localStaff = Integer.valueOf(particularSpecs[STAFF_COLUMN]);
-        this.loadsPerYear = Integer.valueOf(particularSpecs[LOADS_COLUMN]);
-        parseResources(consumption, particularSpecs[CONSUMPTION_COLUMN]);
-        parseResources(production, particularSpecs[PRODUCTION_COLUMN]);
+    protected void particularParser(List<String> particularSpecs) {
+        this.localStaff = Integer.valueOf(particularSpecs.get(STAFF_COLUMN));
+        this.loadsPerYear = Integer.valueOf(particularSpecs.get(LOADS_COLUMN));
+        parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
+        parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
     }
     
     private void parseResources(ResourceMultiset direction, String specifications) {

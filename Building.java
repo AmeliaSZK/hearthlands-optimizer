@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -19,6 +20,7 @@ public abstract class Building {
      * Excel decided to make its CSV export use semicolons...
      */
     
+    private static final int TOTAL_NB_OF_COLUMNS  = 11;
     private static final int NB_OF_COMMON_COLUMNS = 7;
     // Column indexes of the common specifications.
     private static final int NAME_COLUMN    = 0;
@@ -45,14 +47,14 @@ public abstract class Building {
     protected Building() {}
     
     public static void buildAll(String allCsvRecords) {
-        ArrayList<String> allSpecifications = new ArrayList<>(
+        ArrayList<String> allSpecifications = new ArrayList<String>(
                 Arrays.asList(allCsvRecords.split("\\R")));
         
         int size = allSpecifications.size();
         
         HashSet<Building> tempBuildingsSet = new HashSet<>(size + 1, 1);
         
-        for(String specifications : allSpecifications) {
+        for (String specifications : allSpecifications) {
             tempBuildingsSet.add(createBuilding(specifications));
         }
         
@@ -60,8 +62,18 @@ public abstract class Building {
     }
     
     private static Building createBuilding(String specifications) {
-        String[] specs       = specifications.split(COLUMNS_DELIMITER);
-        String   classMarker = specs[CLASS_COLUMN];
+        ArrayList<String> specs = new ArrayList<>(
+                Arrays.asList(specifications.split(COLUMNS_DELIMITER)));
+        
+        while(specs.size() < TOTAL_NB_OF_COLUMNS) {
+            specs.add("");
+        }
+        /*
+         * The .split won't capture empty columns, so we have to add them. Also,
+         * this means we can only leave empty values at the end of a record.
+         */
+        
+        String classMarker = specs.get(CLASS_COLUMN);
         
         switch (classMarker) {
         case PROD_CLASS_MARKER:
@@ -71,14 +83,13 @@ public abstract class Building {
         }
     }
     
-    protected final void commonParser(String[] commonSpecs) {
-        this.name = commonSpecs[NAME_COLUMN];
-        this.type = Type.valueOf(commonSpecs[TYPE_COLUMN]);
+    protected final void commonParser(List<String> specs) {
+        this.name = specs.get(NAME_COLUMN);
+        this.type = Type.valueOf(specs.get(TYPE_COLUMN));
         this.category = type.getCategory();
         
         for (Culture culture : Culture.values()) {
-            String  marker     = commonSpecs[CULTURE_COLUMN
-                    + culture.ordinal()];
+            String  marker     = specs.get(CULTURE_COLUMN + culture.ordinal());
             boolean isIncluded = marker.equals("1");
             
             cultures = EnumSet.noneOf(Culture.class);
@@ -89,6 +100,6 @@ public abstract class Building {
         
     }
     
-    protected abstract void particularParser(String[] particularSpecs);
+    protected abstract void particularParser(List<String> particularSpecs);
     
 }
