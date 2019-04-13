@@ -14,8 +14,8 @@ import java.util.Set;
  *
  */
 public abstract class Building {
-    private static final String PROD_CLASS_MARKER = "prod";
-    private static final String COLUMNS_DELIMITER = ";";
+    private static final String   PROD_CLASS_MARKER = "prod";
+    protected static final String COLUMNS_DELIMITER = ";";
     /*
      * Excel decided to make its CSV export use semicolons...
      */
@@ -43,10 +43,13 @@ public abstract class Building {
     protected Category         category;
     protected Type             type;
     protected EnumSet<Culture> cultures;
+    protected int              localStaff;
+    protected int              totalStaff;
     
     protected Building() {}
     
-    public static void buildAll(String allCsvRecords) {
+    public static void buildAll(String allCsvRecords, boolean includeHunters,
+            boolean includeDiggers, boolean includeMines) {
         ArrayList<String> allSpecifications = new ArrayList<String>(
                 Arrays.asList(allCsvRecords.split("\\R")));
         
@@ -58,14 +61,50 @@ public abstract class Building {
             tempBuildingsSet.add(createBuilding(specifications));
         }
         
+        HashSet<Building> buildingsToRemove = new HashSet<>();
+        
+        for (Building building : tempBuildingsSet) {
+            Type thisType = building.getType();
+            
+            if (!includeHunters && thisType.equals(Type.HUNTER)) {
+                buildingsToRemove.add(building);
+                
+            } else if (!includeDiggers && (thisType.equals(Type.COAL_DIGGER)
+                    || thisType.equals(Type.GOLD_DIGGER)
+                    || thisType.equals(Type.IRON_DIGGER)
+                    || thisType.equals(Type.MASONRY))) {
+                buildingsToRemove.add(building);
+                
+            } else if (!includeMines && (thisType.equals(Type.COAL_MINE)
+                    || thisType.equals(Type.GOLD_MINE)
+                    || thisType.equals(Type.IRON_MINE)
+                    || thisType.equals(Type.QUARRY))) {
+                buildingsToRemove.add(building);
+                
+            }
+        }
+        
+        tempBuildingsSet.removeAll(buildingsToRemove);
+        
         allBuildings = Set.copyOf(tempBuildingsSet);
+    }
+    
+    public static final String allToString() {
+        String result = "";
+        
+        for (Building building : allBuildings) {
+            result += building;
+            result += "\n";
+        }
+        
+        return result;
     }
     
     private static Building createBuilding(String specifications) {
         ArrayList<String> specs = new ArrayList<>(
                 Arrays.asList(specifications.split(COLUMNS_DELIMITER)));
         
-        while(specs.size() < TOTAL_NB_OF_COLUMNS) {
+        while (specs.size() < TOTAL_NB_OF_COLUMNS) {
             specs.add("");
         }
         /*
@@ -83,22 +122,65 @@ public abstract class Building {
         }
     }
     
+    protected Type getType() {
+        return type;
+    }
+    
     protected final void commonParser(List<String> specs) {
         this.name = specs.get(NAME_COLUMN);
         this.type = Type.valueOf(specs.get(TYPE_COLUMN));
         this.category = type.getCategory();
         
+        cultures = EnumSet.noneOf(Culture.class);
         for (Culture culture : Culture.values()) {
             String  marker     = specs.get(CULTURE_COLUMN + culture.ordinal());
             boolean isIncluded = marker.equals("1");
             
-            cultures = EnumSet.noneOf(Culture.class);
             if (isIncluded) {
                 cultures.add(culture);
             }
         }
         
+        this.localStaff = Integer.valueOf(specs.get(STAFF_COLUMN));
+        this.totalStaff = localStaff;
+        
     }
+    
+    @Override
+    public final String toString() {
+        return commonToString() + particularToString();
+    }
+    
+    private String commonToString() {
+        String result = "";
+        
+        result += name;
+        result += COLUMNS_DELIMITER;
+        result += category.getPrettyName();
+        result += COLUMNS_DELIMITER;
+        result += type.getPrettyName();
+        result += COLUMNS_DELIMITER;
+        for (Culture culture : Culture.values()) {
+            result += cultures.contains(culture) ? "VRAI" : "FAUX";
+            result += COLUMNS_DELIMITER;
+        }
+        result += localStaff;
+        result += COLUMNS_DELIMITER;
+        result += getTotalStaff();
+        result += COLUMNS_DELIMITER;
+        
+        return result;
+    }
+    
+    public int getLocalStaff() {
+        return localStaff;
+    }
+    
+    public int getTotalStaff() {
+        return totalStaff;
+    }
+    
+    protected abstract String particularToString();
     
     protected abstract void particularParser(List<String> particularSpecs);
     

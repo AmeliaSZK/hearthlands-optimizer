@@ -1,9 +1,7 @@
 package hearthlandsoptimizer;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * A building that produce {@link Resource}.
@@ -16,15 +14,11 @@ public class Producer extends Building {
     private static final int MAX_RECURSIVE_CALLS    = 1;
     private static final int UNCOMPUTED_TOTAL_STAFF = -1;
     
-    private int              localStaff;
     private int              loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
     
-    private int              totalStaff;
     private ProducerMultiset completeChain;
-    
-    private Set<Producer> culture;
     
     private int nbOfRecursiveCalls;
     
@@ -111,19 +105,8 @@ public class Producer extends Building {
         totalStaff = UNCOMPUTED_TOTAL_STAFF;
         completeChain.clear();
     }
-    
-    public void setCulture(Collection<Producer> availableProducers) {
-        /*
-         * TODO Make a proper Culture class.
-         */
-        culture = Set.copyOf(availableProducers);
-        resetDependencies();
-    }
-    
-    public int getLocalStaff() {
-        return localStaff;
-    }
-    
+        
+    @Override
     public int getTotalStaff() {
         if (isTotalStaffComputed() == false) {
             this.computeTotalStaff();
@@ -147,7 +130,6 @@ public class Producer extends Building {
      * @throws AssertError if there is a loop in the production chain.
      */
     public void computeCompleteChain() {
-        assert culture != null : "Culture must be set before computing chain.";
         nbOfRecursiveCalls++;
         assert nbOfRecursiveCalls <= MAX_RECURSIVE_CALLS : String.format(
                 "There was a loop when computing chain for %s!", this.name);
@@ -173,9 +155,12 @@ public class Producer extends Building {
                 Resource neededResource = entry.getKey();
                 Producer supplier       = null;
                 
-                for (Producer producer : culture) {
-                    if (producer.isProducing(neededResource)) {
-                        supplier = producer;
+                for (Building building : allBuildings) {
+                    if (building instanceof Producer) {
+                        Producer producer = (Producer) building;
+                        if (producer.isProducing(neededResource)) {
+                            supplier = producer;
+                        }
                     }
                 }
                 
@@ -206,31 +191,45 @@ public class Producer extends Building {
             cumulatedStaff += entry.getKey().getLocalStaff() * entry.getValue();
         }
         
+        totalStaff = cumulatedStaff;
+        
     }
     
     @Override
     protected void particularParser(List<String> particularSpecs) {
-        this.localStaff = Integer.valueOf(particularSpecs.get(STAFF_COLUMN));
         this.loadsPerYear = Integer.valueOf(particularSpecs.get(LOADS_COLUMN));
+        
         consumption = new ResourceMultiset();
         parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
         production = new ResourceMultiset();
         parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
+        
+        totalStaff = UNCOMPUTED_TOTAL_STAFF;
+        completeChain = new ProducerMultiset();
     }
     
     private void parseResources(ResourceMultiset direction,
             String specifications) {
-        if (!specifications.isEmpty()) {
+        if (!specifications.isBlank()) {
             String[] specs = specifications.split(" +");
             assert specs.length
                     % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
             
             // Notice the i=i+2 instead of i++
             for (int i = 0; i < specs.length - 1; i = i + 2) {
-                Integer  count    = Integer.valueOf(specs[i]);
+                Float    count    = Float.valueOf(specs[i]) * loadsPerYear;
                 Resource resource = Resource.valueOf(specs[i + 1]);
                 direction.add(resource, count);
             } // End for all pairs of fields
         } // End if specifications aren't empty
     } // End parseResources
+    
+    @Override
+    protected String particularToString() {
+        String result = "";
+        
+        result += loadsPerYear;
+        
+        return result;
+    }
 }
