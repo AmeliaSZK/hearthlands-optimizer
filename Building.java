@@ -285,4 +285,8 @@ public abstract class Building {
         return cultures.contains(culture);
     }
     
+    public String getName() {
+        return name;
+    }
+    
 }
