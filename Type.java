@@ -1,5 +1,7 @@
 package hearthlandsoptimizer;
 
+import java.util.EnumSet;
+
 /**
  * Available buildings sorted by :
  * 
@@ -59,6 +61,11 @@ public enum Type {
     APOTHECARY("Apothecary", Category.STORAGE_DISTRIBUTION),
     MARKETPLACE("Marketplace", Category.STORAGE_DISTRIBUTION);
     
+    public static final EnumSet<Type> DIGGERS = EnumSet.of(MASONRY, COAL_DIGGER,
+            IRON_DIGGER, GOLD_DIGGER);
+    public static final EnumSet<Type> MINES   = EnumSet.of(QUARRY, COAL_MINE,
+            IRON_MINE, GOLD_MINE);
+    
     private final String   prettyName;
     private final Category category;
     
@@ -66,15 +73,33 @@ public enum Type {
         this.prettyName = prettyName;
         this.category = category;
     }
-
+    
     public String getPrettyName() {
         return prettyName;
     }
-
+    
     public Category getCategory() {
         return category;
     }
     
+    /**
+     * Tests wether {@code this} is a Quarry, Coal Mine, Iron Mine, or Gold
+     * Mine.
+     * 
+     * @return if {@code this} is a mine.
+     */
+    public boolean isMine() {
+        return MINES.contains(this);
+    }
     
+    /**
+     * Tests wether {@code this} is a Masonry, Coal Digger, Iron Digger, or Gold
+     * Digger.
+     * 
+     * @return if {@code this} is a digger.
+     */
+    public boolean isDigger() {
+        return DIGGERS.contains(this);
+    }
     
 }
