@@ -15,9 +15,17 @@ import java.util.Set;
  */
 public class Producer extends Building {
     
-    private static final int   MAX_RECURSIVE_CALLS    = 1;
-    private static final Float UNCOMPUTED_TOTAL_STAFF = 0f;
-    public static final Float UNSUSTAINABLE          = -1f;
+    private static final String COTTON_MARKER       = "Cotton";
+    private static final String MINES_BURNER_MARKER = "Mines & Burner";
+    private static final String MINES_MARKER        = "Mines";
+    private static final String DIGGERS_MARKER      = "Diggers";
+    private static final String CHICKENS_MARKER     = "Chickens";
+    private static final String MARKET_MARKER       = "Market";
+    private static final String HUNT_MARKER         = "Hunt";
+    private static final String PIGS_MARKER         = "Pigs";
+    private static final int    MAX_RECURSIVE_CALLS = 1;
+    private static final Float  UNCOMPUTED          = 0f;
+    public static final Float   UNSUSTAINABLE       = -1f;
     
     private int              loadsPerYear;
     private ResourceMultiset consumption;
@@ -42,9 +50,65 @@ public class Producer extends Building {
         parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
         
         for (Culture culture : cultures) {
-            allChains.get(culture).setTotalStaff(UNCOMPUTED_TOTAL_STAFF);
+            allChains.get(culture).setTotalStaff(UNCOMPUTED);
             allChains.get(culture).getChain().clear();
         }
+        
+        excludedTypes = EnumSet.noneOf(Type.class);
+        fillExcludedTypesSet();
+        
+        marketAllowed = name.endsWith(MARKET_MARKER);
+    }
+    
+    private void fillExcludedTypesSet() {
+        // Default exclusions :
+        excludedTypes.add(Type.HUNTER);
+        excludedTypes.addAll(Type.MINES);
+        excludedTypes.add(Type.WOODBURNER);
+        /*
+         * In this method, code commented out represents exclusions that were
+         * included in the defaults right above.
+         */
+        
+        if (type == Type.SMOKEHOUSE || type == Type.SHOEMAKER) {
+            if (name.endsWith(PIGS_MARKER)) {
+//                excludedTypes.add(Type.HUNTER);
+            } else if (name.endsWith(HUNT_MARKER)) {
+                excludedTypes.add(Type.PIGSTRY);
+                excludedTypes.remove(Type.HUNTER);
+            } else if (name.endsWith(MARKET_MARKER)) {
+//                excludedTypes.add(Type.HUNTER);
+                excludedTypes.add(Type.PIGSTRY);
+            }
+        }
+        
+        if (type == Type.PILLOW_MAKER) {
+            if (name.endsWith(CHICKENS_MARKER)) {
+//                excludedTypes.add(Type.HUNTER);
+            } else if (name.endsWith(HUNT_MARKER)) {
+                excludedTypes.add(Type.AVIARY);
+                excludedTypes.remove(Type.HUNTER);
+            } else if (name.endsWith(MARKET_MARKER)) {
+//                excludedTypes.add(Type.HUNTER);
+                excludedTypes.add(Type.AVIARY);
+            }
+        }
+        
+        if (type == Type.SMELTERY || type == Type.MINT) {
+            if (name.endsWith(DIGGERS_MARKER)) {
+//                excludedTypes.addAll(Type.MINES);
+//                excludedTypes.add(Type.WOODBURNER);                
+            } else if (name.endsWith(MINES_MARKER)) {
+                excludedTypes.removeAll(Type.MINES);
+                excludedTypes.addAll(Type.DIGGERS);
+            } else if (name.endsWith(MINES_BURNER_MARKER)) {
+                excludedTypes.removeAll(Type.MINES);
+                excludedTypes.addAll(Type.DIGGERS);
+                excludedTypes.remove(Type.WOODBURNER);
+                excludedTypes.add(Type.COAL_MINE);
+            }
+        }
+        
     }
     
     private void parseResources(ResourceMultiset direction,
@@ -101,110 +165,14 @@ public class Producer extends Building {
                 Resource      supplyNeeded    = supply.getKey();
                 Float         countNeeded     = supply.getValue();
                 Set<Producer> suppliers;
-                Producer      uniqueSupplier  = null;
                 Float         suppliersNeeded = 0f;
                 
                 suppliers = findAllAvailableSuppliers(supplyNeeded, culture);
                 reduceToOnlyOneSupplier(suppliers, culture, supplyNeeded);
                 assignTheUniqueSupplier(suppliers, thisChain, culture,
                         countNeeded, supplyNeeded, thisDependency);
-                
-                for (Building building : allBuildings) {
-                    
-                    if (building instanceof Producer
-                            && building.isAvailableTo(culture)) {
-                        
-                        Producer producer = (Producer) building;
-                        
-                        if (producer.isProducing(supplyNeeded)) {
-                            suppliers.add(producer);
-                            uniqueSupplier = producer;
-                            
-                            Float suppliesProduced = producer.getProduction()
-                                    .get(supplyNeeded);
-                            
-                            suppliersNeeded = countNeeded / suppliesProduced;
-                        }
-                    }
-                }
-                
-                suppliers.removeIf(e -> e.getTotalStaff(culture) == -1);
-                suppliers.removeIf(e -> excludedTypes.contains(e.getType()));
-                
-                if (suppliers.size() == 1) {
-                    thisChain.addAll(uniqueSupplier.getCompleteChain(culture),
-                            suppliersNeeded);
-                    
-                } else if (suppliers.isEmpty()) {
-                    thisChain.clear();
-                    thisDependency.setTotalStaff(-1f);
-                    thisDependency.makeUnavailable();
-                    /*
-                     * Not true anymore :
-                     * 
-                     * If no supplier was found, we put the Marketplace in the
-                     * chain, but with a count of 0 so that it doesn't increase
-                     * the staff needed. This is because only a few markets are
-                     * needed in-game to supply the whole city, and their
-                     * available supplies is variable.
-                     */
-                }
-                
-                if (suppliers.size() > 1) {
-                    
-                    if (suppliers.size() > 1) {
-                        suppliers.removeIf(
-                                e -> e.getName().startsWith("Cotton"));
-                        /*
-                         * For the set of producers that excludes Hunters,
-                         * Mines, and Woodburner, this condition should only
-                         * come about for suppliers of Textile for the Eastern
-                         * culture. Weavers can either get Cotton from a Grower,
-                         * or Wool from a Sheep Sheperd.
-                         * 
-                         * I'm eliminating the Cotton Grower because I feel the
-                         * Sheperds have a better space efficiency.
-                         */
-                        
-                        for (Producer producer : suppliers) {
-                            
-                            Float suppliesProduced = producer.getProduction()
-                                    .get(supplyNeeded);
-                            
-                            Float suppliersNeeded2 = countNeeded
-                                    / suppliesProduced;
-                            
-                            thisChain.addAll(producer.getCompleteChain(culture),
-                                    suppliersNeeded2);
-                        }
-                        
-                    } else if (suppliers.isEmpty()) {
-                        thisChain.clear();
-                        thisDependency.setTotalStaff(-1f);
-                        thisDependency.makeUnavailable();
-                    } else {
-                        for (Producer producer : suppliers) {
-                            
-                            Float suppliesProduced = producer.getProduction()
-                                    .get(supplyNeeded);
-                            
-                            Float suppliersNeeded2 = countNeeded
-                                    / suppliesProduced;
-                            
-                            thisChain.addAll(producer.getCompleteChain(culture),
-                                    suppliersNeeded2);
-                        }
-                    }
-                }
-                
-                if (suppliers.size() > 1) {
-                    System.err.println(String.format(
-                            "More than 1 available supplier of %s found for %s in culture %s!",
-                            supplyNeeded, this.name, culture));
-                }
-                
-            }
-        }
+            } // End for each supply.
+        } // End if consumption isn't empty.
         
         thisChain.add(this, 1);
         nbOfRecursiveCalls = 0;
@@ -251,12 +219,19 @@ public class Producer extends Building {
         
         suppliers.removeIf(thisSupplier -> culture == Culture.EASTERNERS
                 && supplyNeeded == Resource.TEXTILE
-                && thisSupplier.getName().startsWith("Cotton")
-                && thisSupplier.getType() == Type.GROWER);
+                && thisSupplier.getName().startsWith(COTTON_MARKER)
+                && thisSupplier.getType() == Type.WEAVER);
         /*
          * Easterners can get Textile from either Cotton Growers, or from Sheep
          * Sheperd, and I feel the sheperds have a better space efficiency.
+         * 
+         * The Type filtered is Weaver instead of Grower, because the Textile
+         * searcher will look for a Cotton Weaver, not a Cotton Grower.
          */
+        
+        suppliers.removeIf(thisSupplier -> supplyNeeded == Resource.MEAT
+                && thisSupplier.getType() == Type.HUNTER
+                && !thisSupplier.getName().startsWith("Any"));
         
         if (suppliers.size() > 1) {
             System.err.println(String.format(
@@ -378,7 +353,7 @@ public class Producer extends Building {
     }
     
     public boolean isTotalStaffComputed(Culture culture) {
-        return allChains.get(culture).getTotalStaff() != UNCOMPUTED_TOTAL_STAFF;
+        return allChains.get(culture).getTotalStaff() != UNCOMPUTED;
     }
     
     @Override
@@ -386,6 +361,14 @@ public class Producer extends Building {
         String result = "";
         
         result += loadsPerYear;
+        result += Building.COLUMNS_DELIMITER;
+        
+        for (Culture culture : Culture.values()) {
+            result += allChains.get(culture).getChain().size();
+            result += culture != Culture.NORTHERNERS
+                    ? Building.COLUMNS_DELIMITER
+                    : "";
+        }
         
         return result;
     }

@@ -47,7 +47,7 @@ public abstract class Building {
         }
         
         public Float getTotalStaff() {
-            if(!available) {
+            if (!available) {
                 totalStaff = Producer.UNSUSTAINABLE;
             }
             
@@ -58,8 +58,8 @@ public abstract class Building {
             if (available) {
                 this.totalStaff = totalStaff;
             } else {
-                throw new UnsupportedOperationException("Cannot set total staff"
-                        + "of a Dependency marked unavailable.");
+//                throw new UnsupportedOperationException("Cannot set total staff"
+//                        + "of a Dependency marked unavailable.");
             }
         }
         
@@ -89,12 +89,14 @@ public abstract class Building {
     }
     
     private static final String PROD_CLASS_MARKER = "prod";
+    private static final String HEADERS           = "name;category;type;west;east;south;north;local staff;west total staff;east total staff;south total staff;north total staff;loads;west chain size;east chain size;south chain size;north chain size";
     
     protected static final String COLUMNS_DELIMITER = ";";
     /*
      * Excel decided to make its CSV export use semicolons...
      */
     
+    private static final int HEADERS_LINE         = 0;
     private static final int TOTAL_NB_OF_COLUMNS  = 11;
     private static final int NB_OF_COMMON_COLUMNS = 7;
     // Column indexes of the common specifications.
@@ -119,6 +121,9 @@ public abstract class Building {
     public static final String allToString() {
         String result = "";
         
+        result += HEADERS;
+        result += "\n";
+        
         for (Building building : allBuildings) {
             result += building;
             result += "\n";
@@ -133,6 +138,7 @@ public abstract class Building {
         ArrayList<String> allSpecifications = new ArrayList<String>(
                 Arrays.asList(allCsvRecords.split("\\R")));
         
+        allSpecifications.remove(HEADERS_LINE);
         int size = allSpecifications.size();
         
         HashSet<Building> tempBuildingsSet = new HashSet<>(size + 1, 1);
@@ -144,33 +150,10 @@ public abstract class Building {
         HashSet<Building> buildingsToRemove = new HashSet<>();
         
         for (Building building : tempBuildingsSet) {
-            Type thisType = building.getType();
-            
-            if (!includeHunters && thisType.equals(Type.HUNTER)) {
-                buildingsToRemove.add(building);
-                
-            } else if (!includeDiggers && (thisType.equals(Type.COAL_DIGGER)
-                    || thisType.equals(Type.GOLD_DIGGER)
-                    || thisType.equals(Type.IRON_DIGGER)
-                    || thisType.equals(Type.MASONRY))) {
-                buildingsToRemove.add(building);
-                
-            } else if (!includeMines && (thisType.equals(Type.COAL_MINE)
-                    || thisType.equals(Type.GOLD_MINE)
-                    || thisType.equals(Type.IRON_MINE)
-                    || thisType.equals(Type.QUARRY))) {
-                buildingsToRemove.add(building);
-                
-            } else if (thisType.equals(Type.MARKETPLACE)) {
+            if (building.getType().equals(Type.MARKETPLACE)) {
                 marketplace = building;
-                
-            } else if (!includeWoodburner
-                    && (thisType.equals(Type.WOODBURNER))) {
-                buildingsToRemove.add(building);
             }
         }
-        
-        tempBuildingsSet.removeAll(buildingsToRemove);
         
         allBuildings = Set.copyOf(tempBuildingsSet);
     }
@@ -201,13 +184,10 @@ public abstract class Building {
         return marketplace;
     }
     
-    protected String   name;
-    protected Category category;
-    protected Type     type;
-    
-    protected int localStaff;
-//    protected int totalStaff;
-    
+    protected String           name;
+    protected Category         category;
+    protected Type             type;
+    protected int              localStaff;
     /**
      * The cultures that can build {@code this} Building.
      */
