@@ -10,8 +10,7 @@ import java.util.Map;
  *
  */
 public interface Multiset<K> extends Map<K, Float> {
-    
-    
+        
     /**
      * Adds the specified count of {@code element} to the multiset. 
      * 
@@ -46,14 +45,15 @@ public interface Multiset<K> extends Map<K, Float> {
     }
     
     /**
-     * Adds all members of the specified multiset to this multiset.
+     * Adds all members of the specified multiset to this multiset, with each
+     * sourced value multiplied by the specified factor before their inclusion.
      * 
      * @param ms The multiset to add.
-     * @param count TODO
+     * @param factor The factor by which to multiply each value from {@code ms}.
      */
-    public default void addAll(Multiset<K> ms, Float count) {
+    public default void addAll(Multiset<K> ms, Float factor) {
         for(Map.Entry<K, Float> entry : ms.entrySet()) {
-            add(entry.getKey(), entry.getValue() * count);
+            add(entry.getKey(), entry.getValue() * factor);
         }
     }
     

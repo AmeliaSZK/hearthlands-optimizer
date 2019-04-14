@@ -15,7 +15,51 @@ import java.util.Set;
  *
  */
 public abstract class Building {
-    private static final String   PROD_CLASS_MARKER = "prod";
+    
+    protected class DependencyChain {
+        private final Building owner;
+        
+        private Float            totalStaff;
+        private BuildingMultiset chain;
+        
+        /**
+         * Creates a new dependency chain. If it {@code isAvailable}, the chain
+         * will be initialized with 1 count of its owner, and {@code totalStaff}
+         * brought to its owner's {@code localStaff}. Otherwise,
+         * {@code totalStaff} will be brought to -1 and the chain will stay
+         * empty.
+         * 
+         * @param owner         the {@code Building} depending on this chain.
+         * @param canBeComputed if the owner is allowed to compute this chain.
+         */
+        private DependencyChain(Building owner, Boolean canBeComputed) {
+            this.owner = owner;
+            chain = new BuildingMultiset();
+            
+            if (canBeComputed) {
+                chain.add(owner, 1);
+                totalStaff = (float) owner.localStaff;
+            } else {
+                totalStaff = -1f;
+            }
+        }
+        
+        public Float getTotalStaff() {
+            return totalStaff;
+        }
+        
+        public void setTotalStaff(Float totalStaff) {
+            this.totalStaff = totalStaff;
+        }
+        
+        public BuildingMultiset getChain() {
+            return chain;
+        }
+        
+    }
+    
+    private static final String PROD_CLASS_MARKER = "prod";
+    
     protected static final String COLUMNS_DELIMITER = ";";
     /*
      * Excel decided to make its CSV export use semicolons...
@@ -27,29 +71,30 @@ public abstract class Building {
     private static final int NAME_COLUMN    = 0;
     private static final int TYPE_COLUMN    = 1;
     private static final int CULTURE_COLUMN = 2;
-    private static final int CLASS_COLUMN   = 6;
     
+    private static final int CLASS_COLUMN = 6;
     // Column indexes of the particular specifications
     // For Producers :
     protected static final int STAFF_COLUMN       = 7;
     protected static final int LOADS_COLUMN       = 8;
     protected static final int CONSUMPTION_COLUMN = 9;
-    protected static final int PRODUCTION_COLUMN  = 10;
+    
+    protected static final int PRODUCTION_COLUMN = 10;
     // For Other buildings :
     // Nothing.
     
     protected static Set<Building> allBuildings;
     
-    protected String           name;
-    protected Category         category;
-    protected Type             type;
-    protected EnumSet<Culture> cultures;
-    protected int              localStaff;
-    protected int              totalStaff;
-    
-    protected EnumMap<Culture, DependencyChain> allChains;
-    
-    protected Building() {}
+    public static final String allToString() {
+        String result = "";
+        
+        for (Building building : allBuildings) {
+            result += building;
+            result += "\n";
+        }
+        
+        return result;
+    }
     
     public static void buildAll(String allCsvRecords, boolean includeHunters,
             boolean includeDiggers, boolean includeMines) {
@@ -92,25 +137,6 @@ public abstract class Building {
         allBuildings = Set.copyOf(tempBuildingsSet);
     }
     
-    public static final String allToString() {
-        String result = "";
-        
-        for (Building building : allBuildings) {
-            result += building;
-            result += "\n";
-        }
-        
-        for (Building building : allBuildings) {
-            if (building instanceof Producer) {
-                Producer producer = (Producer) building;
-                result += producer.getCompleteChain().toString();
-                result += "\n";
-            }
-        }
-        
-        return result;
-    }
-    
     private static Building createBuilding(String specifications) {
         ArrayList<String> specs = new ArrayList<>(
                 Arrays.asList(specifications.split(COLUMNS_DELIMITER)));
@@ -133,9 +159,21 @@ public abstract class Building {
         }
     }
     
-    protected Type getType() {
-        return type;
-    }
+    protected String   name;
+    protected Category category;
+    protected Type     type;
+    
+    protected int localStaff;
+    protected int totalStaff;
+    
+    /**
+     * The cultures that can build {@code this} Building.
+     */
+    protected EnumSet<Culture> cultures;
+    
+    protected EnumMap<Culture, DependencyChain> allChains;
+    
+    protected Building() {}
     
     protected final void commonParser(List<String> specs) {
         this.name = specs.get(NAME_COLUMN);
@@ -153,13 +191,16 @@ public abstract class Building {
         }
         
         this.localStaff = Integer.valueOf(specs.get(STAFF_COLUMN));
-        this.totalStaff = localStaff;
         
-    }
-    
-    @Override
-    public final String toString() {
-        return commonToString() + particularToString();
+        allChains = new EnumMap<>(Culture.class);
+        
+        for (Culture culture : Culture.values()) {
+            DependencyChain thisChain = new DependencyChain(this,
+                    cultures.contains(culture));
+            
+            allChains.put(culture, thisChain);
+        }
+        
     }
     
     private String commonToString() {
@@ -191,19 +232,21 @@ public abstract class Building {
         return totalStaff;
     }
     
-    protected abstract String particularToString();
+    public Float getTotalStaff(Culture culture) {
+        return allChains.get(culture).totalStaff;
+    }
+    
+    protected Type getType() {
+        return type;
+    }
     
     protected abstract void particularParser(List<String> particularSpecs);
     
-    protected class DependencyChain {
-        private final Building owner;
-        
-        private Float            totalStaff;
-        private ProducerMultiset chain;
-        
-        private DependencyChain(Building owner) {
-            this.owner = owner;
-        }
+    protected abstract String particularToString();
+    
+    @Override
+    public final String toString() {
+        return commonToString() + particularToString();
     }
     
 }
