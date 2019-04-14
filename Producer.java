@@ -128,8 +128,6 @@ public class Producer extends Building {
     } // End parseResources
     
     /**
-     * Not yet correct, as it doesn't take into account the required amount of
-     * resources.
      * 
      * @param culture The culture for in which to choose the suppliers.
      * 
