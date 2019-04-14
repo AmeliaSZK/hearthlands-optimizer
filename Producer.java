@@ -1,9 +1,11 @@
 package hearthlandsoptimizer;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * A building that produce {@link Resource}.
@@ -15,10 +17,13 @@ public class Producer extends Building {
     
     private static final int   MAX_RECURSIVE_CALLS    = 1;
     private static final Float UNCOMPUTED_TOTAL_STAFF = 0f;
+    public static final Float UNSUSTAINABLE          = -1f;
     
     private int              loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
+    private EnumSet<Type>    excludedTypes;
+    private boolean          marketAllowed;
     
     private int nbOfRecursiveCalls;
     
@@ -62,7 +67,7 @@ public class Producer extends Building {
      * Not yet correct, as it doesn't take into account the required amount of
      * resources.
      * 
-     * @param culture TODO
+     * @param culture The culture for in which to choose the suppliers.
      * 
      * @throws AssertError if there is a loop in the production chain.
      */
@@ -93,11 +98,16 @@ public class Producer extends Building {
              * thrown. The count is set back to 0 at the end of this method.
              */
             for (Entry<Resource, Float> supply : consumption.entrySet()) {
-                Resource          supplyNeeded    = supply.getKey();
-                Float             countNeeded     = supply.getValue();
-                HashSet<Producer> suppliers       = new HashSet<>();
-                Producer          uniqueSupplier  = null;
-                Float             suppliersNeeded = 0f;
+                Resource      supplyNeeded    = supply.getKey();
+                Float         countNeeded     = supply.getValue();
+                Set<Producer> suppliers;
+                Producer      uniqueSupplier  = null;
+                Float         suppliersNeeded = 0f;
+                
+                suppliers = findAllAvailableSuppliers(supplyNeeded, culture);
+                reduceToOnlyOneSupplier(suppliers, culture, supplyNeeded);
+                assignTheUniqueSupplier(suppliers, thisChain, culture,
+                        countNeeded, supplyNeeded, thisDependency);
                 
                 for (Building building : allBuildings) {
                     
@@ -117,6 +127,9 @@ public class Producer extends Building {
                         }
                     }
                 }
+                
+                suppliers.removeIf(e -> e.getTotalStaff(culture) == -1);
+                suppliers.removeIf(e -> excludedTypes.contains(e.getType()));
                 
                 if (suppliers.size() == 1) {
                     thisChain.addAll(uniqueSupplier.getCompleteChain(culture),
@@ -139,10 +152,9 @@ public class Producer extends Building {
                 
                 if (suppliers.size() > 1) {
                     
-                    suppliers.removeIf(e -> e.getTotalStaff(culture) == -1);
-                    
                     if (suppliers.size() > 1) {
-                        suppliers.removeIf(e -> e.getName().startsWith("Cotton"));
+                        suppliers.removeIf(
+                                e -> e.getName().startsWith("Cotton"));
                         /*
                          * For the set of producers that excludes Hunters,
                          * Mines, and Woodburner, this condition should only
@@ -155,8 +167,15 @@ public class Producer extends Building {
                          */
                         
                         for (Producer producer : suppliers) {
+                            
+                            Float suppliesProduced = producer.getProduction()
+                                    .get(supplyNeeded);
+                            
+                            Float suppliersNeeded2 = countNeeded
+                                    / suppliesProduced;
+                            
                             thisChain.addAll(producer.getCompleteChain(culture),
-                                    suppliersNeeded);
+                                    suppliersNeeded2);
                         }
                         
                     } else if (suppliers.isEmpty()) {
@@ -165,8 +184,15 @@ public class Producer extends Building {
                         thisDependency.makeUnavailable();
                     } else {
                         for (Producer producer : suppliers) {
+                            
+                            Float suppliesProduced = producer.getProduction()
+                                    .get(supplyNeeded);
+                            
+                            Float suppliersNeeded2 = countNeeded
+                                    / suppliesProduced;
+                            
                             thisChain.addAll(producer.getCompleteChain(culture),
-                                    suppliersNeeded);
+                                    suppliersNeeded2);
                         }
                     }
                 }
@@ -183,6 +209,87 @@ public class Producer extends Building {
         thisChain.add(this, 1);
         nbOfRecursiveCalls = 0;
         
+    }
+    
+    private void assignTheUniqueSupplier(Set<Producer> suppliers,
+            BuildingMultiset thisChain, Culture culture, Float countNeeded,
+            Resource supplyNeeded, DependencyChain thisDependency) {
+        
+        if (suppliers.isEmpty() == false) {
+            for (Producer producer : suppliers) {
+                
+                Float suppliesProduced = producer.getProduction()
+                        .get(supplyNeeded);
+                
+                Float suppliersNeeded = countNeeded / suppliesProduced;
+                
+                thisChain.addAll(producer.getCompleteChain(culture),
+                        suppliersNeeded);
+            }
+            
+        } else if (marketAllowed) {
+            thisChain.add(getMarketplace(), 0f);
+            /*
+             * If no supplier was found, we put the Marketplace in the chain, if
+             * allowed to, but with a count of 0 so that it doesn't increase the
+             * staff needed. This is because only a few markets are needed
+             * in-game to supply the whole city, and their available supplies is
+             * variable.
+             */
+            
+        } else {
+            // If no supplier is available :
+            thisChain.clear();
+            thisDependency.setTotalStaff(UNSUSTAINABLE);
+            thisDependency.makeUnavailable();
+        }
+        
+    }
+    
+    private void reduceToOnlyOneSupplier(Set<Producer> suppliers,
+            Culture culture, Resource supplyNeeded) {
+        
+        suppliers.removeIf(thisSupplier -> culture == Culture.EASTERNERS
+                && supplyNeeded == Resource.TEXTILE
+                && thisSupplier.getName().startsWith("Cotton")
+                && thisSupplier.getType() == Type.GROWER);
+        /*
+         * Easterners can get Textile from either Cotton Growers, or from Sheep
+         * Sheperd, and I feel the sheperds have a better space efficiency.
+         */
+        
+        if (suppliers.size() > 1) {
+            System.err.println(String.format(
+                    "More than 1 available supplier of %s found for %s in culture %s!",
+                    supplyNeeded, this.name, culture));
+            /*
+             * Print an error message if there is still more than 1 supplier.
+             * I'll just keep adding tests here on an ad hoc basis until there's
+             * no no more error messages.
+             */
+        }
+    }
+    
+    private Set<Producer> findAllAvailableSuppliers(Resource supplyNeeded,
+            Culture culture) {
+        
+        HashSet<Producer> suppliers = new HashSet<>();
+        
+        for (Building building : allBuildings) {
+            if (building instanceof Producer
+                    && building.isAvailableTo(culture)) {
+                
+                Producer producer = (Producer) building;
+                if (producer.isProducing(supplyNeeded)) {
+                    suppliers.add(producer);
+                }
+            }
+        }
+        
+        suppliers.removeIf(e -> e.getTotalStaff(culture) == UNSUSTAINABLE);
+        suppliers.removeIf(e -> excludedTypes.contains(e.getType()));
+        
+        return suppliers;
     }
     
     public void computeTotalStaff(Culture culture) {

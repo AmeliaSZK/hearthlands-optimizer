@@ -18,7 +18,7 @@ public abstract class Building {
     
     protected class DependencyChain {
         private final Building owner;
-        public boolean         available;
+        private boolean        available;
         
         private Float            totalStaff;
         private BuildingMultiset chain;
@@ -47,17 +47,30 @@ public abstract class Building {
         }
         
         public Float getTotalStaff() {
+            if(!available) {
+                totalStaff = Producer.UNSUSTAINABLE;
+            }
+            
             return totalStaff;
         }
         
         public void setTotalStaff(Float totalStaff) {
             if (available) {
                 this.totalStaff = totalStaff;
+            } else {
+                throw new UnsupportedOperationException("Cannot set total staff"
+                        + "of a Dependency marked unavailable.");
             }
         }
         
+        /**
+         * Returns the chain, but if {@code isAvailable} is false, the chain
+         * will first be emptied.
+         * 
+         * @return the chain, empty if unavailable.
+         */
         public BuildingMultiset getChain() {
-            if(!available) {
+            if (!available) {
                 chain.clear();
             }
             return chain;

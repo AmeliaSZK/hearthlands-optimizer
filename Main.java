@@ -3,7 +3,7 @@ package hearthlandsoptimizer;
 public class Main {
     public static final String TEST_DATA = "Apothecary;APOTHECARY;1;1;1;1;other;8;24; ;\n"
             + "Apple Grower;GROWER;1;1;1;0;prod;8;24; ;1 APPLES\n"
-            + "Aviary;AVIARY;1;1;1;0;prod;8;24; ;1 EGGS 1 FEATHERS\n"
+            + "Aviary;AVIARY;1;0;1;0;prod;8;24; ;1 EGGS 1 FEATHERS\n"
             + "Bakery;BAKERY;1;0;1;0;prod;10;24;1 FLOUR 1 LOGS 1 WATER;1 BREAD\n"
             + "Beekeeper;BEEKEEPER;0;0;0;1;prod;12;24;2 FLOWERS;1 HONEY\n"
             + "Beer Brewery;BEER_BREWERY;1;0;0;0;prod;12;24;1 HOPS 1 GRAIN 1 LOGS;1 BEER\n"
