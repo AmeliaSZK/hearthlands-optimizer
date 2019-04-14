@@ -11,61 +11,57 @@ import java.util.Map.Entry;
  *
  */
 public class Producer extends Building {
-
+    
     private static final int MAX_RECURSIVE_CALLS    = 1;
-    private static final int UNCOMPUTED_TOTAL_STAFF = -1;
+    private static final int INT_UNCOMPUTED_TOTAL_STAFF = 0;
+    private static final Float UNCOMPUTED_TOTAL_STAFF = 0f;
     
     private int              loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
     
-    private ProducerMultiset completeChain;
+    private BuildingMultiset completeChain;
     
     private int nbOfRecursiveCalls;
-        
+    
     protected Producer(List<String> specs) {
         commonParser(specs);
         particularParser(specs);
     }
     
-    
-    public boolean isTotalStaffComputed() {
-        return totalStaff != UNCOMPUTED_TOTAL_STAFF;
-    }
-    
-    public boolean isCompleteChainComputed() {
-        return !completeChain.isEmpty();
-        /*
-         * A complete chain must include this instance, so an empty chain cannot
-         * have been computed yet.
-         */
-    }
-    
-    public boolean isProducing(Resource resource) {
-        return production.containsKey(resource);
-    }
-    
-    
     @Override
-    public int getTotalStaff() {
-        if (isTotalStaffComputed() == false) {
-            this.computeTotalStaff();
-        }
+    protected void particularParser(List<String> particularSpecs) {
+        this.loadsPerYear = Integer.valueOf(particularSpecs.get(LOADS_COLUMN));
         
-        return totalStaff;
+        consumption = new ResourceMultiset();
+        parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
+        production = new ResourceMultiset();
+        parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
+                
+        totalStaff = INT_UNCOMPUTED_TOTAL_STAFF;
+        completeChain = new BuildingMultiset();
+        
+        for(Culture culture : cultures) {
+            allChains.get(culture).setTotalStaff(UNCOMPUTED_TOTAL_STAFF);
+            allChains.get(culture).getChain().clear();
+        }
     }
     
-    private Map<Resource, Float> getProduction() {
-        return Map.copyOf(production);
-    }
-    
-    public ProducerMultiset getCompleteChain() {
-        if (isCompleteChainComputed() == false) {
-            this.computeCompleteChain();
-        }
-        
-        return completeChain;
-    }
+    private void parseResources(ResourceMultiset direction,
+            String specifications) {
+        if (!specifications.isBlank()) {
+            String[] specs = specifications.split(" +");
+            assert specs.length
+                    % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
+            
+            // Notice the i=i+2 instead of i++
+            for (int i = 0; i < specs.length - 1; i = i + 2) {
+                Float    count    = Float.valueOf(specs[i]) * loadsPerYear;
+                Resource resource = Resource.valueOf(specs[i + 1]);
+                direction.add(resource, count);
+            } // End for all pairs of fields
+        } // End if specifications aren't empty
+    } // End parseResources
     
     /**
      * Not yet correct, as it doesn't take into account the required amount of
@@ -117,7 +113,8 @@ public class Producer extends Building {
                         "No supplier of %s found for %s.", resourceNeeded,
                         this.name);
                 
-                completeChain.addAll(supplier.getCompleteChain(), suppliersNeeded);
+                completeChain.addAll(supplier.getCompleteChain(),
+                        suppliersNeeded);
             }
         }
         
@@ -136,43 +133,63 @@ public class Producer extends Building {
          * This instance is included in completeChain, so we initialize to 0.
          */
         
-        for (Entry<Producer, Float> supplier : completeChain.entrySet()) {
-            cumulatedStaff += supplier.getKey().getLocalStaff()
-                    * supplier.getValue();
+        for (Entry<Building, Float> supplierEntry : completeChain.entrySet()) {
+            /*
+             * Here, we sum the localStaff values of each supplier instead of
+             * their totalStaff because we are going through every supplier in
+             * the chain.
+             * 
+             * We would need the totalStaff if we were only going through this
+             * Producer's direct suppliers, not this suppliers' suppliers and so
+             * on.
+             */
+            
+            Building supplier           = supplierEntry.getKey();
+            Float    suppliersNeeded    = supplierEntry.getValue();
+            
+            cumulatedStaff += supplier.getLocalStaff() * suppliersNeeded;
         }
         
         totalStaff = cumulatedStaff;
         
     }
     
-    @Override
-    protected void particularParser(List<String> particularSpecs) {
-        this.loadsPerYear = Integer.valueOf(particularSpecs.get(LOADS_COLUMN));
+    public BuildingMultiset getCompleteChain() {
+        if (isCompleteChainComputed() == false) {
+            this.computeCompleteChain();
+        }
         
-        consumption = new ResourceMultiset();
-        parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
-        production = new ResourceMultiset();
-        parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
-        
-        totalStaff = UNCOMPUTED_TOTAL_STAFF;
-        completeChain = new ProducerMultiset();
+        return completeChain;
     }
     
-    private void parseResources(ResourceMultiset direction,
-            String specifications) {
-        if (!specifications.isBlank()) {
-            String[] specs = specifications.split(" +");
-            assert specs.length
-                    % 2 == 0 : "Needs an even number of fields in Consumption and Production columns.";
-            
-            // Notice the i=i+2 instead of i++
-            for (int i = 0; i < specs.length - 1; i = i + 2) {
-                Float    count    = Float.valueOf(specs[i]) * loadsPerYear;
-                Resource resource = Resource.valueOf(specs[i + 1]);
-                direction.add(resource, count);
-            } // End for all pairs of fields
-        } // End if specifications aren't empty
-    } // End parseResources
+    private Map<Resource, Float> getProduction() {
+        return Map.copyOf(production);
+    }
+    
+    @Override
+    public int getTotalStaff() {
+        if (isTotalStaffComputed() == false) {
+            this.computeTotalStaff();
+        }
+        
+        return totalStaff;
+    }
+    
+    public boolean isCompleteChainComputed() {
+        return !completeChain.isEmpty();
+        /*
+         * A complete chain must include this instance, so an empty chain cannot
+         * have been computed yet.
+         */
+    }
+    
+    public boolean isProducing(Resource resource) {
+        return production.containsKey(resource);
+    }
+    
+    public boolean isTotalStaffComputed() {
+        return totalStaff != INT_UNCOMPUTED_TOTAL_STAFF;
+    }
     
     @Override
     protected String particularToString() {
