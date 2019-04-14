@@ -142,11 +142,18 @@ public class Producer extends Building {
                     suppliers.removeIf(e -> e.getTotalStaff(culture) == -1);
                     
                     if (suppliers.size() > 1) {
-                        System.err.println(String.format(
-                                "More than 1 available supplier of %s found for %s in culture %s!",
-                                supplyNeeded, this.name, culture));
+                        suppliers.removeIf(e -> e.getName().startsWith("Cotton"));
+                        /*
+                         * For the set of producers that excludes Hunters,
+                         * Mines, and Woodburner, this condition should only
+                         * come about for suppliers of Textile for the Eastern
+                         * culture. Weavers can either get Cotton from a Grower,
+                         * or Wool from a Sheep Sheperd.
+                         * 
+                         * I'm eliminating the Cotton Grower because I feel the
+                         * Sheperds have a better space efficiency.
+                         */
                         
-                        suppliers.removeIf(e -> e.getType() == Type.GROWER);
                         for (Producer producer : suppliers) {
                             thisChain.addAll(producer.getCompleteChain(culture),
                                     suppliersNeeded);
@@ -162,6 +169,12 @@ public class Producer extends Building {
                                     suppliersNeeded);
                         }
                     }
+                }
+                
+                if (suppliers.size() > 1) {
+                    System.err.println(String.format(
+                            "More than 1 available supplier of %s found for %s in culture %s!",
+                            supplyNeeded, this.name, culture));
                 }
                 
             }
