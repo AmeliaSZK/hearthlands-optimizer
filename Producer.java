@@ -361,14 +361,7 @@ public class Producer extends Building {
         String result = "";
         
         result += loadsPerYear;
-        result += Building.COLUMNS_DELIMITER;
         
-        for (Culture culture : Culture.values()) {
-            result += allChains.get(culture).getChain().size();
-            result += culture != Culture.NORTHERNERS
-                    ? Building.COLUMNS_DELIMITER
-                    : "";
-        }
         
         return result;
     }

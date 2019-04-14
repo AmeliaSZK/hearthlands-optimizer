@@ -1,13 +1,12 @@
 package hearthlandsoptimizer;
 
 import java.util.HashMap;
-
 /**
  * Holds a multiset of {@link Building} where each element can appear multiple
  * times, including as fractions of an element.
  * 
  * @param <Building> the {@code Building}.
- * @param <Float> the amount of {@code Building}.
+ * @param <Float>    the amount of {@code Building}.
  * @author Amélia @SlayZeKyriarchy
  *
  */
@@ -30,11 +29,31 @@ public class BuildingMultiset extends HashMap<Building, Float>
         super();
     }
     
-    
-//    @Override
-//    public String toString() {
-//        String result = "";
-//        
-//        return result;
-//    }
+    @Override
+    public String toString() {
+        String result = "";
+        
+        result += "+CONCAT(";
+        for (Entry<Building, Float> entry : this.entrySet()) {
+            Building building = entry.getKey();
+            Float    count    = entry.getValue();
+            
+            result += "\"";
+            result += String.format("%-4.2f", count);
+            result += " ";
+            result += building.getName();
+            result += "\"";
+            result += ";";
+            result += "UNICAR(10)"; // In Excel, will become a "\n"
+            result += ";";
+        }
+        result += "\"\"";
+        /*
+         * To make the last semicolon concat with an empty string.
+         */
+        
+        result += ")";
+        
+        return result;
+    }
 }
