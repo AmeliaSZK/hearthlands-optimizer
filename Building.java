@@ -18,8 +18,9 @@ public abstract class Building {
     
     protected class DependencyChain {
         private final Building owner;
-        private boolean        available;
+        private final Culture  culture;
         
+        private boolean          available;
         private Float            totalStaff;
         private BuildingMultiset chain;
         
@@ -32,10 +33,13 @@ public abstract class Building {
          * 
          * @param owner         the {@code Building} depending on this chain.
          * @param canBeComputed if the owner is allowed to compute this chain.
+         * @param culture       TODO
          */
-        private DependencyChain(Building owner, Boolean canBeComputed) {
+        private DependencyChain(Building owner, Boolean canBeComputed,
+                Culture culture) {
             this.owner = owner;
-            chain = new BuildingMultiset();
+            this.culture = culture;
+            chain = new BuildingMultiset(culture);
             available = canBeComputed;
             
             if (canBeComputed) {
@@ -91,7 +95,6 @@ public abstract class Building {
     private static final String PROD_CLASS_MARKER = "prod";
     private static final String HEADERS           = "name;category;type;west;east;south;north;local staff;west total staff;east total staff;south total staff;north total staff;west chain size;east chain size;south chain size;north chain size;west full chain;east full chain;south full chain;north full chain;loads";
     
-    
     protected static final String COLUMNS_DELIMITER_INPUT = ";";
     /*
      * Excel decided to make its CSV export use semicolons...
@@ -99,8 +102,8 @@ public abstract class Building {
     
     protected static final String COLUMNS_DELIMITER_OUTPUT = "\t";
     /*
-     * I need to free the semicolon as a delimiter if I want to trick Excel
-     * into recieving formulas.
+     * I need to free the semicolon as a delimiter if I want to trick Excel into
+     * recieving formulas.
      */
     
     private static final int HEADERS_LINE         = 0;
@@ -125,15 +128,13 @@ public abstract class Building {
     protected static Set<Building> allBuildings;
     private static Building        marketplace;
     
-    public static final String allToString() {
-        String result = "";
+    public static final List<String> allToString() {
+        ArrayList<String> result = new ArrayList<>(allBuildings.size() + 2);
         
-        result += headersToString();
-        result += "\n";
+        result.add(headersToString());
         
         for (Building building : allBuildings) {
-            result += building;
-            result += "\n";
+            result.add(building.toString());
         }
         
         return result;
@@ -165,26 +166,24 @@ public abstract class Building {
         
         String result = "";
         
-        for(String header : headers) {
+        for (String header : headers) {
             boolean isLast = headers.indexOf(header) == headers.size() - 1;
-                    
+            
             result += header;
             result += isLast ? "" : COLUMNS_DELIMITER_OUTPUT;
         }
-                
+        
         return result;
     }
-
-    public static void buildAll(String allCsvRecords, boolean includeHunters,
-            boolean includeDiggers, boolean includeMines,
-            boolean includeWoodburner) {
-        ArrayList<String> allSpecifications = new ArrayList<String>(
-                Arrays.asList(allCsvRecords.split("\\R")));
+    
+    public static void buildAll(List<String> allRecords) {
+        
+        ArrayList<String> allSpecifications = new ArrayList<>(allRecords);
         
         allSpecifications.remove(HEADERS_LINE);
-        int size = allSpecifications.size();
+        int specsSize = allSpecifications.size();
         
-        HashSet<Building> tempBuildingsSet = new HashSet<>(size + 1, 1);
+        HashSet<Building> tempBuildingsSet = new HashSet<>(specsSize + 1, 1);
         
         for (String specifications : allSpecifications) {
             tempBuildingsSet.add(createBuilding(specifications));
@@ -261,7 +260,7 @@ public abstract class Building {
         
         for (Culture culture : Culture.values()) {
             DependencyChain thisChain = new DependencyChain(this,
-                    cultures.contains(culture));
+                    cultures.contains(culture), culture);
             
             allChains.put(culture, thisChain);
         }
