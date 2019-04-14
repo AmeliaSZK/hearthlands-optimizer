@@ -62,12 +62,13 @@ public class Main {
             +"Well;WELL;1;1;1;0;prod;0;96; ;1 WATER\n"
             +"Winery;WINERY;0;0;1;0;prod;24;24; ;1 WINE\n"
             +"Woodburner;WOODBURNER;1;1;1;1;prod;12;24;2 LOGS;1 COAL\n"
-            +"Woodcutter;WOODCUTTER;1;1;1;1;prod;4;24;1 TREES;2 LOGS\n"
-;
+            +"Woodcutter;WOODCUTTER;1;1;1;1;prod;4;24;1 TREES;2 LOGS\n";
     
     public static void main(String[] args) {
         Building.buildAll(TEST_DATA, false, true, false, false);
         System.out.println(Building.allToString());
+        
+        
         
     }
     

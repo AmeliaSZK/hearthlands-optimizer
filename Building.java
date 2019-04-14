@@ -89,11 +89,18 @@ public abstract class Building {
     }
     
     private static final String PROD_CLASS_MARKER = "prod";
-    private static final String HEADERS           = "name;category;type;west;east;south;north;local staff;west total staff;east total staff;south total staff;north total staff;loads;west chain size;east chain size;south chain size;north chain size";
+    private static final String HEADERS           = "name;category;type;west;east;south;north;local staff;west total staff;east total staff;south total staff;north total staff;west chain size;east chain size;south chain size;north chain size;west full chain;east full chain;south full chain;north full chain;loads";
     
-    protected static final String COLUMNS_DELIMITER = ";";
+    
+    protected static final String COLUMNS_DELIMITER_INPUT = ";";
     /*
      * Excel decided to make its CSV export use semicolons...
+     */
+    
+    protected static final String COLUMNS_DELIMITER_OUTPUT = "\t";
+    /*
+     * I need to free the semicolon as a delimiter if I want to trick Excel
+     * into recieving formulas.
      */
     
     private static final int HEADERS_LINE         = 0;
@@ -121,7 +128,7 @@ public abstract class Building {
     public static final String allToString() {
         String result = "";
         
-        result += HEADERS;
+        result += headersToString();
         result += "\n";
         
         for (Building building : allBuildings) {
@@ -132,6 +139,42 @@ public abstract class Building {
         return result;
     }
     
+    private static String headersToString() {
+        ArrayList<String> headers = new ArrayList<>();
+        headers.add("name");
+        headers.add("category");
+        headers.add("type");
+        headers.add("west");
+        headers.add("east");
+        headers.add("south");
+        headers.add("north");
+        headers.add("local staff");
+        headers.add("west total staff");
+        headers.add("east total staff");
+        headers.add("south total staff");
+        headers.add("north total staff");
+        headers.add("west chain size");
+        headers.add("east chain size");
+        headers.add("south chain size");
+        headers.add("north chain size");
+        headers.add("west full chain");
+        headers.add("east full chain");
+        headers.add("south full chain");
+        headers.add("north full chain");
+        headers.add("loads");
+        
+        String result = "";
+        
+        for(String header : headers) {
+            boolean isLast = headers.indexOf(header) == headers.size() - 1;
+                    
+            result += header;
+            result += isLast ? "" : COLUMNS_DELIMITER_OUTPUT;
+        }
+                
+        return result;
+    }
+
     public static void buildAll(String allCsvRecords, boolean includeHunters,
             boolean includeDiggers, boolean includeMines,
             boolean includeWoodburner) {
@@ -160,7 +203,7 @@ public abstract class Building {
     
     private static Building createBuilding(String specifications) {
         ArrayList<String> specs = new ArrayList<>(
-                Arrays.asList(specifications.split(COLUMNS_DELIMITER)));
+                Arrays.asList(specifications.split(COLUMNS_DELIMITER_INPUT)));
         
         while (specs.size() < TOTAL_NB_OF_COLUMNS) {
             specs.add("");
@@ -229,21 +272,31 @@ public abstract class Building {
         String result = "";
         
         result += name;
-        result += COLUMNS_DELIMITER;
+        result += COLUMNS_DELIMITER_OUTPUT;
         result += category.getPrettyName();
-        result += COLUMNS_DELIMITER;
+        result += COLUMNS_DELIMITER_OUTPUT;
         result += type.getPrettyName();
-        result += COLUMNS_DELIMITER;
+        result += COLUMNS_DELIMITER_OUTPUT;
         for (Culture culture : Culture.values()) {
             result += cultures.contains(culture) ? "VRAI" : "FAUX";
-            result += COLUMNS_DELIMITER;
+            result += COLUMNS_DELIMITER_OUTPUT;
         }
         result += localStaff;
-        result += COLUMNS_DELIMITER;
+        result += COLUMNS_DELIMITER_OUTPUT;
         
         for (Culture culture : Culture.values()) {
             result += (int) Math.ceil(this.getTotalStaff(culture));
-            result += COLUMNS_DELIMITER;
+            result += COLUMNS_DELIMITER_OUTPUT;
+        }
+        
+        for (Culture culture : Culture.values()) {
+            result += allChains.get(culture).getChain().size();
+            result += COLUMNS_DELIMITER_OUTPUT;
+        }
+        
+        for (Culture culture : Culture.values()) {
+            result += allChains.get(culture).getChain();
+            result += COLUMNS_DELIMITER_OUTPUT;
         }
         
         return result;
