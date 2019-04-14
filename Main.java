@@ -49,7 +49,7 @@ public class Main {
             + "Wool Weaver;WEAVER;1;1;1;1;prod;8;24;1 WOOL;1 TEXTILE\n";
     
     public static void main(String[] args) {
-        Building.buildAll(TEST_DATA, false, true, false);
+        Building.buildAll(TEST_DATA, false, true, false, false);
         System.out.println(Building.allToString());
         
     }

@@ -1,5 +1,6 @@
 package hearthlandsoptimizer;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,15 +13,12 @@ import java.util.Map.Entry;
  */
 public class Producer extends Building {
     
-    private static final int MAX_RECURSIVE_CALLS    = 1;
-    private static final int INT_UNCOMPUTED_TOTAL_STAFF = 0;
+    private static final int   MAX_RECURSIVE_CALLS    = 1;
     private static final Float UNCOMPUTED_TOTAL_STAFF = 0f;
     
     private int              loadsPerYear;
     private ResourceMultiset consumption;
     private ResourceMultiset production;
-    
-    private BuildingMultiset completeChain;
     
     private int nbOfRecursiveCalls;
     
@@ -37,11 +35,8 @@ public class Producer extends Building {
         parseResources(consumption, particularSpecs.get(CONSUMPTION_COLUMN));
         production = new ResourceMultiset();
         parseResources(production, particularSpecs.get(PRODUCTION_COLUMN));
-                
-        totalStaff = INT_UNCOMPUTED_TOTAL_STAFF;
-        completeChain = new BuildingMultiset();
         
-        for(Culture culture : cultures) {
+        for (Culture culture : cultures) {
             allChains.get(culture).setTotalStaff(UNCOMPUTED_TOTAL_STAFF);
             allChains.get(culture).getChain().clear();
         }
@@ -67,14 +62,20 @@ public class Producer extends Building {
      * Not yet correct, as it doesn't take into account the required amount of
      * resources.
      * 
+     * @param culture TODO
+     * 
      * @throws AssertError if there is a loop in the production chain.
      */
-    public void computeCompleteChain() {
+    public void computeCompleteChain(Culture culture) {
+        
+        DependencyChain  thisDependency = allChains.get(culture);
+        BuildingMultiset thisChain      = thisDependency.getChain();
+        
         nbOfRecursiveCalls++;
         assert nbOfRecursiveCalls <= MAX_RECURSIVE_CALLS : String.format(
                 "There was a loop when computing chain for %s!", this.name);
         
-        if (!consumption.isEmpty()) {
+        if (!consumption.isEmpty() || !this.isAvailableTo(culture)) {
             /*
              * An empty consumption is the halt condition for this recursive
              * exercize. computeCompleteChain() calls getCompleteChain(), which
@@ -92,48 +93,99 @@ public class Producer extends Building {
              * thrown. The count is set back to 0 at the end of this method.
              */
             for (Entry<Resource, Float> supply : consumption.entrySet()) {
-                Resource resourceNeeded  = supply.getKey();
-                Float    suppliesNeeded  = supply.getValue();
-                Producer supplier        = null;
-                Float    suppliersNeeded = 0f;
+                Resource          supplyNeeded    = supply.getKey();
+                Float             countNeeded     = supply.getValue();
+                HashSet<Producer> suppliers       = new HashSet<>();
+                Producer          uniqueSupplier  = null;
+                Float             suppliersNeeded = 0f;
                 
                 for (Building building : allBuildings) {
-                    if (building instanceof Producer) {
+                    
+                    if (building instanceof Producer
+                            && building.isAvailableTo(culture)) {
+                        
                         Producer producer = (Producer) building;
-                        if (producer.isProducing(resourceNeeded)) {
-                            supplier = producer;
-                            Float suppliesProduced = supplier.getProduction()
-                                    .get(resourceNeeded);
-                            suppliersNeeded = suppliesNeeded / suppliesProduced;
+                        
+                        if (producer.isProducing(supplyNeeded)) {
+                            suppliers.add(producer);
+                            uniqueSupplier = producer;
+                            
+                            Float suppliesProduced = producer.getProduction()
+                                    .get(supplyNeeded);
+                            
+                            suppliersNeeded = countNeeded / suppliesProduced;
                         }
                     }
                 }
                 
-                assert supplier != null : String.format(
-                        "No supplier of %s found for %s.", resourceNeeded,
-                        this.name);
+                if (suppliers.size() == 1) {
+                    thisChain.addAll(uniqueSupplier.getCompleteChain(culture),
+                            suppliersNeeded);
+                    
+                } else if (suppliers.isEmpty()) {
+                    thisChain.clear();
+                    thisDependency.setTotalStaff(-1f);
+                    thisDependency.makeUnavailable();
+                    /*
+                     * Not true anymore :
+                     * 
+                     * If no supplier was found, we put the Marketplace in the
+                     * chain, but with a count of 0 so that it doesn't increase
+                     * the staff needed. This is because only a few markets are
+                     * needed in-game to supply the whole city, and their
+                     * available supplies is variable.
+                     */
+                }
                 
-                completeChain.addAll(supplier.getCompleteChain(),
-                        suppliersNeeded);
+                if (suppliers.size() > 1) {
+                    
+                    suppliers.removeIf(e -> e.getTotalStaff(culture) == -1);
+                    
+                    if (suppliers.size() > 1) {
+                        System.err.println(String.format(
+                                "More than 1 available supplier of %s found for %s in culture %s!",
+                                supplyNeeded, this.name, culture));
+                        
+                        suppliers.removeIf(e -> e.getType() == Type.GROWER);
+                        for (Producer producer : suppliers) {
+                            thisChain.addAll(producer.getCompleteChain(culture),
+                                    suppliersNeeded);
+                        }
+                        
+                    } else if (suppliers.isEmpty()) {
+                        thisChain.clear();
+                        thisDependency.setTotalStaff(-1f);
+                        thisDependency.makeUnavailable();
+                    } else {
+                        for (Producer producer : suppliers) {
+                            thisChain.addAll(producer.getCompleteChain(culture),
+                                    suppliersNeeded);
+                        }
+                    }
+                }
+                
             }
         }
         
-        completeChain.add(this, 1);
+        thisChain.add(this, 1);
         nbOfRecursiveCalls = 0;
         
     }
     
-    public void computeTotalStaff() {
-        if (isCompleteChainComputed() == false) {
-            computeCompleteChain();
+    public void computeTotalStaff(Culture culture) {
+        if (isCompleteChainComputed(culture) == false) {
+            computeCompleteChain(culture);
         }
         
-        int cumulatedStaff = 0;
+        DependencyChain thisDependency = allChains.get(culture);
+        
+        Float cumulatedStaff = 0f;
         /*
          * This instance is included in completeChain, so we initialize to 0.
          */
         
-        for (Entry<Building, Float> supplierEntry : completeChain.entrySet()) {
+        for (Entry<Building, Float> supplierEntry : thisDependency.getChain()
+                .entrySet()) {
             /*
              * Here, we sum the localStaff values of each supplier instead of
              * their totalStaff because we are going through every supplier in
@@ -144,22 +196,22 @@ public class Producer extends Building {
              * on.
              */
             
-            Building supplier           = supplierEntry.getKey();
-            Float    suppliersNeeded    = supplierEntry.getValue();
+            Building supplier        = supplierEntry.getKey();
+            Float    suppliersNeeded = supplierEntry.getValue();
             
             cumulatedStaff += supplier.getLocalStaff() * suppliersNeeded;
         }
         
-        totalStaff = cumulatedStaff;
+        thisDependency.setTotalStaff(cumulatedStaff);
         
     }
     
-    public BuildingMultiset getCompleteChain() {
-        if (isCompleteChainComputed() == false) {
-            this.computeCompleteChain();
+    public BuildingMultiset getCompleteChain(Culture culture) {
+        if (isCompleteChainComputed(culture) == false) {
+            this.computeCompleteChain(culture);
         }
         
-        return completeChain;
+        return allChains.get(culture).getChain();
     }
     
     private Map<Resource, Float> getProduction() {
@@ -167,19 +219,37 @@ public class Producer extends Building {
     }
     
     @Override
-    public int getTotalStaff() {
-        if (isTotalStaffComputed() == false) {
-            this.computeTotalStaff();
+    public Float getTotalStaff(Culture culture) {
+        if (isTotalStaffComputed(culture) == false) {
+            this.computeTotalStaff(culture);
         }
         
-        return totalStaff;
+        return allChains.get(culture).getTotalStaff();
     }
     
-    public boolean isCompleteChainComputed() {
-        return !completeChain.isEmpty();
+    public boolean isCompleteChainComputed(Culture culture) {
+        DependencyChain thisDependency = allChains.get(culture);
+        
+        return !thisDependency.getChain().isEmpty()
+                || !thisDependency.isAvailable();
         /*
          * A complete chain must include this instance, so an empty chain cannot
          * have been computed yet.
+         * 
+         * Also, if the chain isn't available, it is expected say it is
+         * computed.
+         * 
+         * @formatter:off
+         * T = True
+         * F = False
+         * 
+         *                   Returned
+         * Avail? | Empty? | Computed?
+         *   F        F        T
+         *   F        T        T
+         *   T        F        T
+         *   T        T        F
+         * @formatter:on
          */
     }
     
@@ -187,8 +257,8 @@ public class Producer extends Building {
         return production.containsKey(resource);
     }
     
-    public boolean isTotalStaffComputed() {
-        return totalStaff != INT_UNCOMPUTED_TOTAL_STAFF;
+    public boolean isTotalStaffComputed(Culture culture) {
+        return allChains.get(culture).getTotalStaff() != UNCOMPUTED_TOTAL_STAFF;
     }
     
     @Override
