@@ -18,6 +18,7 @@ public abstract class Building {
     
     protected class DependencyChain {
         private final Building owner;
+        public boolean         available;
         
         private Float            totalStaff;
         private BuildingMultiset chain;
@@ -35,6 +36,7 @@ public abstract class Building {
         private DependencyChain(Building owner, Boolean canBeComputed) {
             this.owner = owner;
             chain = new BuildingMultiset();
+            available = canBeComputed;
             
             if (canBeComputed) {
                 chain.add(owner, 1);
@@ -49,11 +51,26 @@ public abstract class Building {
         }
         
         public void setTotalStaff(Float totalStaff) {
-            this.totalStaff = totalStaff;
+            if (available) {
+                this.totalStaff = totalStaff;
+            }
         }
         
         public BuildingMultiset getChain() {
+            if(!available) {
+                chain.clear();
+            }
             return chain;
+        }
+        
+        public boolean isAvailable() {
+            return available;
+        }
+        
+        public void makeUnavailable() {
+            available = false;
+            chain.clear();
+            totalStaff = -1f;
         }
         
     }
@@ -84,6 +101,7 @@ public abstract class Building {
     // Nothing.
     
     protected static Set<Building> allBuildings;
+    private static Building        marketplace;
     
     public static final String allToString() {
         String result = "";
@@ -97,7 +115,8 @@ public abstract class Building {
     }
     
     public static void buildAll(String allCsvRecords, boolean includeHunters,
-            boolean includeDiggers, boolean includeMines) {
+            boolean includeDiggers, boolean includeMines,
+            boolean includeWoodburner) {
         ArrayList<String> allSpecifications = new ArrayList<String>(
                 Arrays.asList(allCsvRecords.split("\\R")));
         
@@ -129,6 +148,12 @@ public abstract class Building {
                     || thisType.equals(Type.QUARRY))) {
                 buildingsToRemove.add(building);
                 
+            } else if (thisType.equals(Type.MARKETPLACE)) {
+                marketplace = building;
+                
+            } else if (!includeWoodburner
+                    && (thisType.equals(Type.WOODBURNER))) {
+                buildingsToRemove.add(building);
             }
         }
         
@@ -159,12 +184,16 @@ public abstract class Building {
         }
     }
     
+    protected static Building getMarketplace() {
+        return marketplace;
+    }
+    
     protected String   name;
     protected Category category;
     protected Type     type;
     
     protected int localStaff;
-    protected int totalStaff;
+//    protected int totalStaff;
     
     /**
      * The cultures that can build {@code this} Building.
@@ -218,8 +247,11 @@ public abstract class Building {
         }
         result += localStaff;
         result += COLUMNS_DELIMITER;
-        result += getTotalStaff();
-        result += COLUMNS_DELIMITER;
+        
+        for (Culture culture : Culture.values()) {
+            result += (int) Math.ceil(this.getTotalStaff(culture));
+            result += COLUMNS_DELIMITER;
+        }
         
         return result;
     }
@@ -228,9 +260,9 @@ public abstract class Building {
         return localStaff;
     }
     
-    public int getTotalStaff() {
-        return totalStaff;
-    }
+//    public int getTotalStaff() {
+//        return totalStaff;
+//    }
     
     public Float getTotalStaff(Culture culture) {
         return allChains.get(culture).totalStaff;
@@ -247,6 +279,10 @@ public abstract class Building {
     @Override
     public final String toString() {
         return commonToString() + particularToString();
+    }
+    
+    public boolean isAvailableTo(Culture culture) {
+        return cultures.contains(culture);
     }
     
 }
