@@ -45,11 +45,15 @@ public class BuildingMultiset extends HashMap<Building, Float>
     public String toString() {
         ArrayList<Entry<Building, Float>> dependencies = new ArrayList<>(
                 this.entrySet());
-                
+        
+//        Comparator<Entry<Building, Float>> totalStaffComp = (
+//                Entry<Building, Float> e1, Entry<Building, Float> e2) -> e1
+//                        .getKey().getTotalStaff(culture)
+//                        .compareTo(e2.getKey().getTotalStaff(culture));
+        
         Comparator<Entry<Building, Float>> totalStaffComp = (
                 Entry<Building, Float> e1, Entry<Building, Float> e2) -> e1
-                        .getKey().getTotalStaff(culture)
-                        .compareTo(e2.getKey().getTotalStaff(culture));
+                        .getKey().compareTo(e2.getKey(), culture);
         
         dependencies.sort(totalStaffComp.reversed());
         

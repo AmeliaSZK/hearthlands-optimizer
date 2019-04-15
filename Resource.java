@@ -55,7 +55,8 @@ public enum Resource {
     TREES,
     MUSHROOMS,
     FLOWERS,
-    WATER;
+    WATER,
+    RAW_HONEY;
     
     /**
      * Returns the name of this enum constant, converted to lowercase, with the
