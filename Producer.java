@@ -163,10 +163,11 @@ public class Producer extends Building {
                 Resource      supplyNeeded    = supply.getKey();
                 Float         countNeeded     = supply.getValue();
                 Set<Producer> suppliers;
-                Float         suppliersNeeded = 0f;
                 
                 suppliers = findAllAvailableSuppliers(supplyNeeded, culture);
+                
                 reduceToOnlyOneSupplier(suppliers, culture, supplyNeeded);
+                
                 assignTheUniqueSupplier(suppliers, thisChain, culture,
                         countNeeded, supplyNeeded, thisDependency);
             } // End for each supply.

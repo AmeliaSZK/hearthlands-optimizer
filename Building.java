@@ -17,7 +17,9 @@ import java.util.Set;
 public abstract class Building {
     
     protected class DependencyChain {
+        @SuppressWarnings("unused")
         private final Building owner;
+        @SuppressWarnings("unused")
         private final Culture  culture;
         
         private boolean          available;
@@ -33,7 +35,7 @@ public abstract class Building {
          * 
          * @param owner         the {@code Building} depending on this chain.
          * @param canBeComputed if the owner is allowed to compute this chain.
-         * @param culture       TODO
+         * @param culture       culture to whom this chain belongs.
          */
         private DependencyChain(Building owner, Boolean canBeComputed,
                 Culture culture) {
@@ -92,10 +94,14 @@ public abstract class Building {
         
     }
     
-    private static final String PROD_CLASS_MARKER = "prod";
-    private static final String HEADERS           = "name;category;type;west;east;south;north;local staff;west total staff;east total staff;south total staff;north total staff;west chain size;east chain size;south chain size;north chain size;west full chain;east full chain;south full chain;north full chain;loads";
+    public static List<String> buildAllAndToString(List<String> allRecords) {
+        buildAll(allRecords);
+        return allToString();
+    }
     
-    protected static final String COLUMNS_DELIMITER_INPUT = ";";
+    private static final String PROD_CLASS_MARKER = "prod";
+    
+    protected static final String COLUMNS_DELIMITER_INPUT = "\t";
     /*
      * Excel decided to make its CSV export use semicolons...
      */
@@ -106,9 +112,9 @@ public abstract class Building {
      * recieving formulas.
      */
     
-    private static final int HEADERS_LINE         = 0;
-    private static final int TOTAL_NB_OF_COLUMNS  = 11;
-    private static final int NB_OF_COMMON_COLUMNS = 7;
+    private static final int HEADERS_LINE        = 0;
+    private static final int TOTAL_NB_OF_COLUMNS = 11;
+    
     // Column indexes of the common specifications.
     private static final int NAME_COLUMN    = 0;
     private static final int TYPE_COLUMN    = 1;
@@ -162,7 +168,7 @@ public abstract class Building {
         headers.add("east full chain");
         headers.add("south full chain");
         headers.add("north full chain");
-        headers.add("loads");
+        headers.add("loads /year");
         
         String result = "";
         
@@ -188,8 +194,6 @@ public abstract class Building {
         for (String specifications : allSpecifications) {
             tempBuildingsSet.add(createBuilding(specifications));
         }
-        
-        HashSet<Building> buildingsToRemove = new HashSet<>();
         
         for (Building building : tempBuildingsSet) {
             if (building.getType().equals(Type.MARKETPLACE)) {
@@ -332,6 +336,21 @@ public abstract class Building {
     
     public String getName() {
         return name;
+    }
+    
+    public int compareTo(Building other, Culture culture) {
+        int thisTotalStaff  = this.getTotalStaff(culture).intValue();
+        int otherTotalStaff = other.getTotalStaff(culture).intValue();
+        
+        if (this.type == Type.MARKETPLACE) {
+            thisTotalStaff = 0;
+        }
+        
+        if (other.type == Type.MARKETPLACE) {
+            otherTotalStaff = 0;
+        }
+        
+        return thisTotalStaff - otherTotalStaff;
     }
     
 }
